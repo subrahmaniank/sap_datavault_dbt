@@ -1,0 +1,144 @@
+version: 2
+
+sources:
+  - name: seeds
+    description: "SAP seed data loaded from CSV files for development and testing"
+    schema: "{{ target.schema }}_seeds"
+    tables:
+      - name: seed_sap_kna1
+        description: "SAP Customer Master Data (KNA1) - General Data"
+        columns:
+          - name: KUNNR
+            description: "Customer Number"
+          - name: NAME1
+            description: "Customer Name"
+          - name: ORT01
+            description: "City"
+          - name: LAND1
+            description: "Country Code"
+          - name: REGIO
+            description: "Region Code"
+          - name: PSTLZ
+            description: "Postal Code"
+          - name: STRAS
+            description: "Street Address"
+          - name: TELF1
+            description: "Telephone Number"
+          - name: KTOK
+            description: "Customer Account Group"
+          - name: RECORD_SOURCE
+            description: "Source System Identifier"
+          - name: LOAD_DATE
+            description: "Load Timestamp"
+
+      - name: seed_sap_mara
+        description: "SAP Material Master Data (MARA) - General Material Data"
+        columns:
+          - name: MATNR
+            description: "Material Number"
+          - name: MATKL
+            description: "Material Group"
+          - name: MTART
+            description: "Material Type"
+          - name: MEINS
+            description: "Base Unit of Measure"
+          - name: BRGEW
+            description: "Gross Weight"
+          - name: NTGEW
+            description: "Net Weight"
+          - name: VOLUM
+            description: "Volume"
+          - name: VOLUME_UNIT
+            description: "Volume Unit"
+          - name: ERSDA
+            description: "Creation Date"
+          - name: LAEDA
+            description: "Last Change Date"
+          - name: VPSTA
+            description: "Maintenance Status"
+          - name: RECORD_SOURCE
+            description: "Source System Identifier"
+          - name: LOAD_DATE
+            description: "Load Timestamp"
+
+      - name: seed_sap_vbak
+        description: "SAP Sales Document Header Data (VBAK)"
+        columns:
+          - name: VBELN
+            description: "Sales Document Number"
+          - name: KUNNR
+            description: "Sold-to Party (Customer Number)"
+          - name: ERDAT
+            description: "Order Date"
+          - name: AUDAT
+            description: "Document Date"
+          - name: NETWR
+            description: "Net Value"
+          - name: WAERK
+            description: "Currency Code"
+          - name: VKORG
+            description: "Sales Organization"
+          - name: VTWEG
+            description: "Distribution Channel"
+          - name: SPART
+            description: "Division"
+          - name: VKBUR
+            description: "Sales Office"
+          - name: VKGRP
+            description: "Sales Group"
+          - name: AUART
+            description: "Order Type"
+          - name: RECORD_SOURCE
+            description: "Source System Identifier"
+          - name: LOAD_DATE
+            description: "Load Timestamp"
+
+      - name: seed_sap_vbap
+        description: "SAP Sales Document Item Data (VBAP)"
+        columns:
+          - name: VBELN
+            description: "Sales Document Number"
+          - name: POSNR
+            description: "Sales Document Item"
+          - name: MATNR
+            description: "Material Number"
+          - name: KWMENG
+            description: "Order Quantity"
+          - name: VRKME
+            description: "Sales Unit"
+          - name: NETWR
+            description: "Net Value"
+          - name: WAERK
+            description: "Currency Code"
+          - name: NETPR
+            description: "Net Price"
+          - name: WERKS
+            description: "Plant"
+          - name: LGORT
+            description: "Storage Location"
+          - name: ABGRU
+            description: "Reason for Rejection"
+          - name: RECORD_SOURCE
+            description: "Source System Identifier"
+          - name: LOAD_DATE
+            description: "Load Timestamp"
+
+      - name: seed_sap_vbpa
+        description: "SAP Sales Document Partner Data (VBPA)"
+        columns:
+          - name: VBELN
+            description: "Sales Document Number"
+          - name: PARVW
+            description: "Partner Function"
+          - name: KUNNR
+            description: "Customer Number"
+          - name: LIFNR
+            description: "Vendor Number"
+          - name: PERNR
+            description: "Personnel Number"
+          - name: ADRNR
+            description: "Address Number"
+          - name: RECORD_SOURCE
+            description: "Source System Identifier"
+          - name: LOAD_DATE
+            description: "Load Timestamp"
