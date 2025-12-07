@@ -38,10 +38,10 @@ select
 
     -- Metadata ------------------------------------------------------
     record_source                                           as record_source,
-    load_date::timestamp_ntz                                as load_date,
+    {{ get_load_date() }}                                   as load_date,
 
     -- For effectivity satellites
-    load_date::timestamp_ntz                                as effective_from,
+    {{ get_load_date() }}                                   as effective_from,
     '9999-12-31'::timestamp_ntz                             as effective_to,
     true                                                    as is_current
 

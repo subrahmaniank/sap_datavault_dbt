@@ -1,7 +1,4 @@
-{% macro bk(columns) %}
-    {{ return(adapter.dispatch('bk', 'my_vault')(columns)) }}
-{% endmacro %}
-
-{% macro default__bk(columns) %}
-    trim(upper({{ columns | join('||') }}))
-{% endmacro %}
+{#
+    Note: The bk() macro has been removed as it was not used in the project.
+    Business key standardization is now handled directly in staging models.
+#}

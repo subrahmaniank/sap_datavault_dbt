@@ -45,7 +45,7 @@ select
 
     -- Metadata
     record_source                                           as record_source,
-    load_date::timestamp_ntz                                as load_date,
+    {{ get_load_date() }}                                   as load_date,
 
     -- For effectivity satellites / PIT tables
     load_date::timestamp_ntz                                   as effective_from,

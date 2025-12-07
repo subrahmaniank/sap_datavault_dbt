@@ -12,12 +12,12 @@
 
 with source_relationships as (
     select distinct
-        -- Pre-computed hub keys from staging (zero re-hashing = maximum speed & consistency)
+        -- Pre-computed hub keys from staging
         i.hk_order_item_h,
         m.hk_material_h,
 
-        -- Composite link hash key (order item + material)
-        {{ generate_hash_key(['i.hk_order_item_h', 'm.hk_material_h']) }}
+        -- Composite link hash key from business keys (Data Vault 2.0 best practice)
+        {{ generate_hash_key(['i.order_item_bk', 'm.material_bk']) }}
             as hk_link_order_material_l,
 
         -- Metadata

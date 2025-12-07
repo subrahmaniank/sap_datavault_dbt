@@ -46,11 +46,17 @@ customer_versions as (
     from {{ ref('sat_sap_customer_kna1') }}
 ),
 
+-- Get all unique customers from hub
+hub_customers as (
+    select distinct hk_customer_h
+    from {{ ref('hub_customer') }}
+),
+
 -- Core PIT logic: join daily dates to active customer versions on that date
 pit_customer as (
     select
         d.as_of_date,
-        c.hk_customer_h,
+        h.hk_customer_h,
         c.customer_name,
         c.city,
         c.country_code,
@@ -79,10 +85,11 @@ pit_customer as (
         current_timestamp()::timestamp_ntz as pit_created_date
 
     from daily_dates d
+    cross join hub_customers h
     left join customer_versions c
-        on c.effective_from <= d.as_of_date
-       and c.effective_to >= d.as_of_date
-    where c.hk_customer_h is not null  -- only customers that existed on this date
+        on c.hk_customer_h = h.hk_customer_h
+       and c.effective_from::date <= d.as_of_date
+       and c.effective_to::date > d.as_of_date
 )
 
 select * from pit_customer
