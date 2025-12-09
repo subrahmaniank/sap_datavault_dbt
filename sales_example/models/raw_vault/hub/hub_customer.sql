@@ -32,6 +32,12 @@ new_records as (
     left join {{ this }} t
       on sd.hk_customer_h = t.hk_customer_h
     where t.hk_customer_h is null
+    {% else %}
+    -- Initial load: deduplicate by hash key, keep earliest load_date
+    qualify row_number() over (
+        partition by hk_customer_h
+        order by load_date asc
+    ) = 1
     {% endif %}
 ),
 

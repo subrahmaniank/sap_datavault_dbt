@@ -34,6 +34,12 @@ new_records as (
         from {{ this }} t
         where t.hk_order_h = sd.hk_order_h
     )
+    {% else %}
+    -- Initial load: deduplicate by hash key, keep earliest load_date
+    qualify row_number() over (
+        partition by hk_order_h
+        order by load_date asc
+    ) = 1
     {% endif %}
 ),
 

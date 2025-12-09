@@ -1,0 +1,77 @@
+version: 2
+
+models:
+  - name: hub_customer
+    description: "Hub table storing unique customer business keys"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_customer_h
+      - not_null:
+          column_name: hk_customer_h
+      - not_null:
+          column_name: customer_bk
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+    columns:
+      - name: hk_customer_h
+        description: "Hash key for customer (MD5 of business key)"
+      - name: customer_bk
+        description: "Customer business key (10-digit customer number)"
+      - name: record_source
+        description: "Source system identifier"
+      - name: load_date
+        description: "Timestamp when record was loaded"
+
+  - name: hub_material
+    description: "Hub table storing unique material business keys"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_material_h
+      - not_null:
+          column_name: hk_material_h
+      - not_null:
+          column_name: material_bk
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+    columns:
+      - name: hk_material_h
+        description: "Hash key for material (MD5 of business key)"
+      - name: material_bk
+        description: "Material business key (18-digit material number)"
+
+  - name: hub_order
+    description: "Hub table storing unique sales order business keys"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_order_h
+      - not_null:
+          column_name: hk_order_h
+      - not_null:
+          column_name: order_bk
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+
+  - name: hub_order_item
+    description: "Hub table storing unique order item business keys"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_order_item_h
+      - not_null:
+          column_name: hk_order_item_h
+      - not_null:
+          column_name: order_item_bk
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+

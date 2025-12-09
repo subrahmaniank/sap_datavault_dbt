@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: link_order_customer
+    description: "Link table connecting orders to customers"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_link_order_customer_l
+      - not_null:
+          column_name: hk_link_order_customer_l
+      - not_null:
+          column_name: hk_order_h
+      - not_null:
+          column_name: hk_customer_h
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+    columns:
+      - name: hk_order_h
+        tests:
+          - relationships:
+              to: ref('hub_order')
+              field: hk_order_h
+      - name: hk_customer_h
+        tests:
+          - relationships:
+              to: ref('hub_customer')
+              field: hk_customer_h
+      - name: hk_link_order_customer_l
+        description: "Hash key for order-customer link"
+
+  - name: link_order_item
+    description: "Link table connecting orders to order items"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_link_order_item_l
+      - not_null:
+          column_name: hk_link_order_item_l
+      - not_null:
+          column_name: hk_order_h
+      - not_null:
+          column_name: hk_order_item_h
+    columns:
+      - name: hk_order_h
+        tests:
+          - relationships:
+              to: ref('hub_order')
+              field: hk_order_h
+      - name: hk_order_item_h
+        tests:
+          - relationships:
+              to: ref('hub_order_item')
+              field: hk_order_item_h
+
+  - name: link_order_material
+    description: "Link table connecting order items to materials"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - hk_link_order_material_l
+      - not_null:
+          column_name: hk_link_order_material_l
+      - not_null:
+          column_name: hk_order_item_h
+      - not_null:
+          column_name: hk_material_h
+    columns:
+      - name: hk_order_item_h
+        tests:
+          - relationships:
+              to: ref('hub_order_item')
+              field: hk_order_item_h
+      - name: hk_material_h
+        tests:
+          - relationships:
+              to: ref('hub_material')
+              field: hk_material_h
+

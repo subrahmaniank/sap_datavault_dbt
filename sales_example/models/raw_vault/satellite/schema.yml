@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: sat_sap_customer_kna1
+    description: "Satellite table storing customer attributes with full history"
+    tests:
+      - not_null:
+          column_name: hk_customer_h
+      - not_null:
+          column_name: hashdiff
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "hashdiff is not null"
+          config:
+            severity: error
+    columns:
+      - name: hk_customer_h
+        description: "Foreign key to hub_customer"
+        tests:
+          - relationships:
+              to: ref('hub_customer')
+              field: hk_customer_h
+      - name: hashdiff
+        description: "MD5 hash of all descriptive attributes for change detection"
+      - name: load_date
+        description: "Timestamp when this version was loaded (insert-only pattern)"
+
+  - name: sat_sap_material_mara
+    description: "Satellite table storing material attributes with full history"
+    tests:
+      - not_null:
+          column_name: hk_material_h
+      - not_null:
+          column_name: hashdiff
+    columns:
+      - name: hk_material_h
+        tests:
+          - relationships:
+              to: ref('hub_material')
+              field: hk_material_h
+      - name: hashdiff
+
+  - name: sat_sap_order_header_vbak
+    description: "Satellite table storing order header attributes with full history"
+    tests:
+      - not_null:
+          column_name: hk_order_h
+      - not_null:
+          column_name: hashdiff
+    columns:
+      - name: hk_order_h
+        tests:
+          - relationships:
+              to: ref('hub_order')
+              field: hk_order_h
+
+  - name: sat_sap_order_item_vbap
+    description: "Satellite table storing order item attributes with full history"
+    tests:
+      - not_null:
+          column_name: hk_order_item_h
+      - not_null:
+          column_name: hashdiff
+    columns:
+      - name: hk_order_item_h
+        tests:
+          - relationships:
+              to: ref('hub_order_item')
+              field: hk_order_item_h
+

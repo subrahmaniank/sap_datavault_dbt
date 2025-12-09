@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: bv_sat_sap_customer_kna1
+    description: "Business Vault view adding effective dates to customer satellite"
+    tests:
+      - not_null:
+          column_name: effective_from
+      - not_null:
+          column_name: effective_to
+      - not_null:
+          column_name: is_current
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from <= effective_to"
+          config:
+            severity: error
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from = load_date"
+          config:
+            severity: error
+    columns:
+      - name: is_current
+        description: "True if this is the latest version for the customer"
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+                inclusive: true
+
+  - name: bv_sat_sap_material_mara
+    description: "Business Vault view adding effective dates to material satellite"
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from <= effective_to"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from = load_date"
+
+  - name: bv_sat_sap_order_header_vbak
+    description: "Business Vault view adding effective dates to order header satellite"
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from <= effective_to"
+
+  - name: bv_sat_sap_order_item_vbap
+    description: "Business Vault view adding effective dates to order item satellite"
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from <= effective_to"
+
+  - name: pit_customer_daily
+    description: "Point-in-time table for daily customer snapshots"
+    tests:
+      - not_null:
+          column_name: as_of_date
+      - not_null:
+          column_name: hk_customer_h
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "effective_from <= effective_to"
+          config:
+            severity: error
+
+  - name: bridge_sales
+    description: "Bridge table denormalizing sales data for analytics"
+    tests:
+      - not_null:
+          column_name: sales_line_hk
+      - not_null:
+          column_name: sales_header_hk
+      - not_null:
+          column_name: customer_hk
+      - not_null:
+          column_name: material_hk
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "net_amount_local >= 0"
+          config:
+            severity: warn
+

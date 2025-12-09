@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: stg_sap__kna1
+    description: "Staging model for SAP customer master data (KNA1)"
+    tests:
+      - not_null:
+          column_name: customer_bk
+      - not_null:
+          column_name: hk_customer_h
+      - not_null:
+          column_name: record_source
+      - not_null:
+          column_name: load_date
+    columns:
+      - name: hk_customer_h
+        description: "MD5 hash of customer business key"
+      - name: customer_bk
+
+  - name: stg_sap__mara
+    description: "Staging model for SAP material master data (MARA)"
+    tests:
+      - not_null:
+          column_name: material_bk
+      - not_null:
+          column_name: hk_material_h
+    columns:
+      - name: hk_material_h
+      - name: material_bk
+
+  - name: stg_sap__vbak
+    description: "Staging model for SAP sales order header (VBAK)"
+    tests:
+      - not_null:
+          column_name: order_bk
+      - not_null:
+          column_name: hk_order_h
+    columns:
+      - name: hk_order_h
+
+  - name: stg_sap__vbap
+    description: "Staging model for SAP sales order item (VBAP)"
+    tests:
+      - not_null:
+          column_name: order_item_bk
+      - not_null:
+          column_name: hk_order_item_h
+    columns:
+      - name: hk_order_item_h
+
+  - name: stg_sap__vbpa
+    description: "Staging model for SAP sales document partner (VBPA)"
+    tests:
+      - not_null:
+          column_name: order_bk
+
