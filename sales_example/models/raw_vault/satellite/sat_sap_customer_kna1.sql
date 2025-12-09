@@ -39,15 +39,12 @@ with staged as (
 
         -- Metadata
         record_source,
-        load_date,
-        load_date as effective_from,
-        '9999-12-31'::timestamp_ntz as effective_to,
-        true as is_current
+        load_date
     from {{ ref('stg_sap__kna1') }}
     where hk_customer_h is not null
 ),
 
--- Only insert new versions when something actually changed
+-- Pure Data Vault 2.0 insert-only pattern: only insert new records when hashdiff changes
 new_versions as (
     select
         s.hk_customer_h,
@@ -61,63 +58,23 @@ new_versions as (
         s.customer_account_group,
         s.hashdiff,
         s.record_source,
-        s.load_date,
-        s.effective_from,
-        s.effective_to,
-        s.is_current
+        s.load_date
     from staged s
     {% if is_incremental() %}
-    left join {{ this }} t
-      on s.hk_customer_h = t.hk_customer_h
-     and t.is_current = true
-    where t.hk_customer_h is null
-       or s.hashdiff != t.hashdiff
-    {% endif %}
-),
-
--- Close previous version if a new one arrives for the same customer
-final as (
-    select
-        nv.hk_customer_h,
-        nv.customer_name,
-        nv.city,
-        nv.country_code,
-        nv.region_code,
-        nv.postal_code,
-        nv.street_address,
-        nv.phone_number,
-        nv.customer_account_group,
-        nv.hashdiff,
-        nv.record_source,
-        nv.load_date,
-        nv.effective_from,
-        nv.effective_to,
-        nv.is_current
-    from new_versions nv
-    {% if is_incremental() %}
-    union all
-    -- Close old versions when a newer one exists
-    select
-        t.hk_customer_h,
-        t.customer_name,
-        t.city,
-        t.country_code,
-        t.region_code,
-        t.postal_code,
-        t.street_address,
-        t.phone_number,
-        t.customer_account_group,
-        t.hashdiff,
-        t.record_source,
-        t.load_date,
-        t.effective_from,
-        nv.load_date as effective_to,
-        false as is_current
-    from {{ this }} t
-    join new_versions nv
-      on t.hk_customer_h = nv.hk_customer_h
-    where t.is_current = true
-      and nv.load_date > t.load_date
+    -- Only insert if this is a new parent key OR hashdiff has changed
+    left join (
+        select 
+            hk_customer_h,
+            hashdiff
+        from {{ this }}
+        qualify row_number() over (
+            partition by hk_customer_h
+            order by load_date desc
+        ) = 1
+    ) latest
+      on s.hk_customer_h = latest.hk_customer_h
+    where latest.hk_customer_h is null  -- New customer
+       or s.hashdiff != latest.hashdiff  -- Changed attributes
     {% endif %}
 )
 
@@ -133,9 +90,6 @@ select
     customer_account_group,
     hashdiff,
     record_source,
-    load_date,
-    effective_from,
-    effective_to,
-    is_current
-from final
+    load_date
+from new_versions
 order by hk_customer_h, load_date

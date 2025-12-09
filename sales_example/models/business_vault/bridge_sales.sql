@@ -8,6 +8,32 @@
     ]
 ) }}
 
+-- Use Business Vault satellite models which include is_current flags
+-- Filter to latest versions using is_current flag (computed in Business Vault)
+with latest_order_items as (
+    select *
+    from {{ ref('bv_sat_sap_order_item_vbap') }}
+    where is_current = true
+),
+
+latest_order_headers as (
+    select *
+    from {{ ref('bv_sat_sap_order_header_vbak') }}
+    where is_current = true
+),
+
+latest_customers as (
+    select *
+    from {{ ref('bv_sat_sap_customer_kna1') }}
+    where is_current = true
+),
+
+latest_materials as (
+    select *
+    from {{ ref('bv_sat_sap_material_mara') }}
+    where is_current = true
+)
+
 select
     -- Primary keys (for direct joins in BI tools)
     oi.hk_order_item_h          as sales_line_hk,
@@ -22,8 +48,8 @@ select
     hm.material_bk              as material_number,
 
     -- Dates
-    hdr.order_date            as order_date,
-    hdr.document_date           as document_date,
+    hdr.order_date              as order_date,
+    hdr.document_date          as document_date,
 
     -- Customer attributes (current version)
     c.customer_name,
@@ -69,19 +95,16 @@ select
     greatest(oi.load_date, hdr.load_date, c.load_date, m.load_date) as bridge_load_date,
     current_timestamp()         as bridge_created_at
 
-from {{ ref('sat_sap_order_item_vbap') }}      oi
+from latest_order_items oi
 join {{ ref('hub_order_item') }}              hoi  on oi.hk_order_item_h = hoi.hk_order_item_h
 join {{ ref('link_order_item') }}             loi  on oi.hk_order_item_h = loi.hk_order_item_h
 join {{ ref('hub_order') }}                   ho   on loi.hk_order_h = ho.hk_order_h
-join {{ ref('sat_sap_order_header_vbak') }}   hdr  on loi.hk_order_h = hdr.hk_order_h and hdr.is_current = true
+join latest_order_headers                      hdr  on loi.hk_order_h = hdr.hk_order_h
 join {{ ref('link_order_customer') }}         loc  on loi.hk_order_h = loc.hk_order_h
 join {{ ref('hub_customer') }}                hc   on loc.hk_customer_h = hc.hk_customer_h
-join {{ ref('sat_sap_customer_kna1') }}       c    on loc.hk_customer_h = c.hk_customer_h and c.is_current = true
+join latest_customers                          c    on loc.hk_customer_h = c.hk_customer_h
 join {{ ref('link_order_material') }}         lom  on oi.hk_order_item_h = lom.hk_order_item_h
 join {{ ref('hub_material') }}                hm   on lom.hk_material_h = hm.hk_material_h
-join {{ ref('sat_sap_material_mara') }}       m    on lom.hk_material_h = m.hk_material_h and m.is_current = true
-
-where oi.is_current = true
-  and hdr.is_current = true
+join latest_materials                          m    on lom.hk_material_h = m.hk_material_h
 
 order by ho.order_bk, hoi.order_item_bk

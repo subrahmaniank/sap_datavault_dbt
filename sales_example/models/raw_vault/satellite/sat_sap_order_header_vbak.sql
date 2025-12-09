@@ -45,77 +45,45 @@ with staged as (
 
         -- Metadata
         record_source,
-        load_date,
-        load_date as effective_from,
-        '9999-12-31'::timestamp_ntz as effective_to,
-        true as is_current
+        load_date
     from {{ ref('stg_sap__vbak') }}
     where hk_order_h is not null
 ),
 
--- Detect real changes (new orders or actual updates)
+-- Pure Data Vault 2.0 insert-only pattern: only insert new records when hashdiff changes
 new_versions as (
     select
-        s.*
+        s.hk_order_h,
+        s.order_date,
+        s.document_date,
+        s.net_value_header,
+        s.currency_code,
+        s.sales_organization,
+        s.distribution_channel,
+        s.division,
+        s.sales_office,
+        s.sales_group,
+        s.order_type,
+        s.order_type_description,
+        s.hashdiff,
+        s.record_source,
+        s.load_date
     from staged s
     {% if is_incremental() %}
-    left join {{ this }} t
-      on s.hk_order_h = t.hk_order_h
-     and t.is_current = true
-    where t.hk_order_h is null
-       or s.hashdiff != t.hashdiff
-    {% endif %}
-),
-
-final as (
-    -- 1. Insert the new version(s)
-    select
-        nv.hk_order_h,
-        nv.order_date,
-        nv.document_date,
-        nv.net_value_header,
-        nv.currency_code,
-        nv.sales_organization,
-        nv.distribution_channel,
-        nv.division,
-        nv.sales_office,
-        nv.sales_group,
-        nv.order_type,
-        nv.order_type_description,
-        nv.hashdiff,
-        nv.record_source,
-        nv.load_date,
-        nv.effective_from,
-        nv.effective_to,
-        nv.is_current
-    from new_versions nv
-    {% if is_incremental() %}
-    union all
-
-    -- 2. Close the previous current version when a new one appears
-    select
-        t.hk_order_h,
-        t.order_date,
-        t.document_date,
-        t.net_value_header,
-        t.currency_code,
-        t.sales_organization,
-        t.distribution_channel,
-        t.division,
-        t.sales_office,
-        t.sales_group,
-        t.order_type,
-        t.order_type_description,
-        t.hashdiff,
-        t.record_source,
-        t.load_date,
-        t.effective_from,
-        nv.load_date as effective_to,
-        false as is_current
-    from {{ this }} t
-    join new_versions nv
-      on t.hk_order_h = nv.hk_order_h
-    where t.is_current = true
+    -- Only insert if this is a new parent key OR hashdiff has changed
+    left join (
+        select 
+            hk_order_h,
+            hashdiff
+        from {{ this }}
+        qualify row_number() over (
+            partition by hk_order_h
+            order by load_date desc
+        ) = 1
+    ) latest
+      on s.hk_order_h = latest.hk_order_h
+    where latest.hk_order_h is null  -- New order
+       or s.hashdiff != latest.hashdiff  -- Changed attributes
     {% endif %}
 )
 
@@ -134,9 +102,6 @@ select
     order_type_description,
     hashdiff,
     record_source,
-    load_date,
-    effective_from,
-    effective_to,
-    is_current
-from final
+    load_date
+from new_versions
 order by hk_order_h, load_date

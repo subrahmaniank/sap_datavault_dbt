@@ -39,70 +39,43 @@ with staged as (
 
         -- Metadata
         record_source,
-        load_date,
-        load_date as effective_from,
-        '9999-12-31'::timestamp_ntz as effective_to,
-        true as is_current
+        load_date
 
     from {{ ref('stg_sap__vbap') }}
     where hk_order_item_h is not null
 ),
 
+-- Pure Data Vault 2.0 insert-only pattern: only insert new records when hashdiff changes
 new_versions as (
-    select s.*
+    select
+        s.hk_order_item_h,
+        s.quantity,
+        s.unit_of_measure,
+        s.net_value_item,
+        s.currency_code,
+        s.plant,
+        s.storage_location,
+        s.unit_price,
+        s.item_status,
+        s.hashdiff,
+        s.record_source,
+        s.load_date
     from staged s
     {% if is_incremental() %}
-    left join {{ this }} t
-      on s.hk_order_item_h = t.hk_order_item_h
-     and t.is_current = true
-    where t.hk_order_item_h is null
-       or s.hashdiff != t.hashdiff
-    {% endif %}
-),
-
-final as (
-    -- Insert new versions
-    select
-        nv.hk_order_item_h,
-        nv.quantity,
-        nv.unit_of_measure,
-        nv.net_value_item,
-        nv.currency_code,
-        nv.plant,
-        nv.storage_location,
-        nv.unit_price,
-        nv.item_status,
-        nv.hashdiff,
-        nv.record_source,
-        nv.load_date,
-        nv.effective_from,
-        nv.effective_to,
-        nv.is_current
-    from new_versions nv
-    {% if is_incremental() %}
-    union all
-
-    -- Close previous current version when a newer one arrives
-    select
-        t.hk_order_item_h,
-        t.quantity,
-        t.unit_of_measure,
-        t.net_value_item,
-        t.currency_code,
-        t.plant,
-        t.storage_location,
-        t.unit_price,
-        t.item_status,
-        t.hashdiff,
-        t.record_source,
-        t.load_date,
-        t.effective_from,
-        nv.load_date as effective_to,
-        false as is_current
-    from {{ this }} t
-    join new_versions nv
-      on t.hk_order_item_h = nv.hk_order_item_h
-    where t.is_current = true
+    -- Only insert if this is a new parent key OR hashdiff has changed
+    left join (
+        select 
+            hk_order_item_h,
+            hashdiff
+        from {{ this }}
+        qualify row_number() over (
+            partition by hk_order_item_h
+            order by load_date desc
+        ) = 1
+    ) latest
+      on s.hk_order_item_h = latest.hk_order_item_h
+    where latest.hk_order_item_h is null  -- New order item
+       or s.hashdiff != latest.hashdiff  -- Changed attributes
     {% endif %}
 )
 
@@ -118,9 +91,6 @@ select
     item_status,
     hashdiff,
     record_source,
-    load_date,
-    effective_from,
-    effective_to,
-    is_current
-from final
+    load_date
+from new_versions
 order by hk_order_item_h, load_date

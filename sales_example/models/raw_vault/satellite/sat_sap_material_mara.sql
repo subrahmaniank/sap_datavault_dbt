@@ -47,78 +47,47 @@ with staged as (
 
         -- Metadata
         record_source,
-        load_date,
-        load_date as effective_from,
-        '9999-12-31'::timestamp_ntz as effective_to,
-        true as is_current
+        load_date
 
     from {{ ref('stg_sap__mara') }}
     where hk_material_h is not null
 ),
 
+-- Pure Data Vault 2.0 insert-only pattern: only insert new records when hashdiff changes
 new_versions as (
-    select s.*
+    select
+        s.hk_material_h,
+        s.material_group,
+        s.material_type,
+        s.material_type_description,
+        s.base_unit_of_measure,
+        s.gross_weight,
+        s.net_weight,
+        s.volume,
+        s.volume_uom,
+        s.creation_date,
+        s.last_change_date,
+        s.maintenance_status,
+        s.weight_category,
+        s.hashdiff,
+        s.record_source,
+        s.load_date
     from staged s
     {% if is_incremental() %}
-    left join {{ this }} t
-      on s.hk_material_h = t.hk_material_h
-     and t.is_current = true
-    where t.hk_material_h is null
-       or s.hashdiff != t.hashdiff
-    {% endif %}
-),
-
-final as (
-    -- 1. Insert brand-new or changed material versions
-    select
-        nv.hk_material_h,
-        nv.material_group,
-        nv.material_type,
-        nv.material_type_description,
-        nv.base_unit_of_measure,
-        nv.gross_weight,
-        nv.net_weight,
-        nv.volume,
-        nv.volume_uom,
-        nv.creation_date,
-        nv.last_change_date,
-        nv.maintenance_status,
-        nv.weight_category,
-        nv.hashdiff,
-        nv.record_source,
-        nv.load_date,
-        nv.effective_from,
-        nv.effective_to,
-        nv.is_current
-    from new_versions nv
-    {% if is_incremental() %}
-    union all
-
-    -- 2. Close previous version when a newer one arrives
-    select
-        t.hk_material_h,
-        t.material_group,
-        t.material_type,
-        t.material_type_description,
-        t.base_unit_of_measure,
-        t.gross_weight,
-        t.net_weight,
-        t.volume,
-        t.volume_uom,
-        t.creation_date,
-        t.last_change_date,
-        t.maintenance_status,
-        t.weight_category,
-        t.hashdiff,
-        t.record_source,
-        t.load_date,
-        t.effective_from,
-        nv.load_date as effective_to,
-        false as is_current
-    from {{ this }} t
-    join new_versions nv
-      on t.hk_material_h = nv.hk_material_h
-    where t.is_current = true
+    -- Only insert if this is a new parent key OR hashdiff has changed
+    left join (
+        select 
+            hk_material_h,
+            hashdiff
+        from {{ this }}
+        qualify row_number() over (
+            partition by hk_material_h
+            order by load_date desc
+        ) = 1
+    ) latest
+      on s.hk_material_h = latest.hk_material_h
+    where latest.hk_material_h is null  -- New material
+       or s.hashdiff != latest.hashdiff  -- Changed attributes
     {% endif %}
 )
 
@@ -138,9 +107,6 @@ select
     weight_category,
     hashdiff,
     record_source,
-    load_date,
-    effective_from,
-    effective_to,
-    is_current
-from final
+    load_date
+from new_versions
 order by hk_material_h, load_date

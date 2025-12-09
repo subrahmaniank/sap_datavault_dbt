@@ -26,7 +26,7 @@ daily_dates as (
 ),
 
 customer_versions as (
-    -- All active + historical customer versions from satellite
+    -- Use Business Vault satellite model which includes computed effective dates
     select
         hk_customer_h,
         customer_name,
@@ -43,7 +43,7 @@ customer_versions as (
         effective_from,
         effective_to,
         is_current
-    from {{ ref('sat_sap_customer_kna1') }}
+    from {{ ref('bv_sat_sap_customer_kna1') }}
 ),
 
 -- Get all unique customers from hub
