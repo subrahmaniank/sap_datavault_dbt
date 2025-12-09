@@ -57,10 +57,7 @@ select
 
     -- Metadata
     record_source                                           as record_source,
-    {{ get_load_date() }}                                   as load_date,
-    {{ get_load_date() }}                                   as effective_from,
-    '9999-12-31'::timestamp_ntz                             as effective_to,
-    true                                                    as is_current
+    {{ get_load_date() }}                                   as load_date
 
 from {{ source('seeds', 'seed_sap_vbpa') }}
 
